@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3-Pattern Tracker (2^2 = 2 Pairs)</title>
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; user-select: none; }
+        body { background: #000; color: #fff; margin: 0; padding: 0; height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        
+        .app-container {
+            width: 100vw; height: 100vh; background: #080808;
+            display: flex; flex-direction: column; padding: 10px 10px 40px 10px;
+            position: relative; justify-content: flex-start;
+        }
+
+        /* Top Bar */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .top-tools { display: flex; gap: 6px; }
+        .theme-btn {
+            background: #1a1a1a; color: #ccc; font-size: 11px; padding: 4px 10px;
+            border-radius: 20px; border: 1px solid #333; cursor: pointer; font-weight: bold;
+        }
+
+        /* Center Box Display (สี่เหลี่ยม 3 มิติ) */
+        .display-section {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 6px 0;
+        }
+        .main-box {
+            width: 130px; height: 110px; border-radius: 16px;
+            background: linear-gradient(145deg, #181818, #0d0d0d);
+            border: 2px solid #00e5ff;
+            box-shadow: 
+                0 10px 20px rgba(0, 0, 0, 0.8),
+                0 0 15px rgba(0, 229, 255, 0.4),
+                inset 0 1px 1px rgba(255, 255, 255, 0.2),
+                inset 0 -3px 8px rgba(0, 0, 0, 0.9);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; transition: all 0.3s ease;
+        }
+        .main-box.box-p { 
+            border-color: #0055ff; 
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8), 0 0 22px rgba(0, 85, 255, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.3), inset 0 -3px 8px rgba(0, 0, 0, 0.9);
+        }
+        .main-box.box-b { 
+            border-color: #ff2200; 
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.8), 0 0 22px rgba(255, 34, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.3), inset 0 -3px 8px rgba(0, 0, 0, 0.9);
+        }
+        
+        .target-text { font-size: 42px; font-weight: 900; line-height: 1; letter-spacing: -1px; text-shadow: 0 2px 5px rgba(0,0,0,0.8); }
+        .target-text.text-p { color: #2979ff; }
+        .target-text.text-b { color: #ff1744; }
+        .target-text.text-wait { color: #555; }
+
+        /* Counter Bar & History Link */
+        .counter-bar {
+            display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: bold;
+            padding: 0 2px; margin-bottom: 4px; color: #aaa;
+        }
+        .count-p { color: #2979ff; }
+        .count-t { color: #00e676; }
+        .count-b { color: #ff1744; }
+        
+        .win-loss-text { font-size: 11px; color: #fff; }
+        .btn-history-link {
+            background: #222; color: #00e5ff; border: 1px solid #333; padding: 2px 6px;
+            border-radius: 4px; cursor: pointer; font-size: 10px; margin-left: 4px;
+        }
+
+        /* Bead Plate Matrix */
+        .bead-plate-container {
+            background: #121212; border: 1px solid #222; border-radius: 6px;
+            padding: 6px; margin-bottom: 8px; overflow-x: auto; display: flex; align-items: center;
+        }
+        .bead-grid {
+            display: grid; 
+            grid-template-rows: repeat(6, 21px);
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(23px, 1fr); 
+            gap: 2px 3px; 
+            width: 100%;
+        }
+        .bead-cell {
+            width: 21px; height: 21px;
+            border-radius: 50%; background: #1a1a1a;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 900; color: #fff; margin: auto;
+            line-height: 1;
+        }
+        .bead-cell.p { background: #0055ff; }
+        .bead-cell.b { background: #d50000; }
+        .bead-cell.t { background: #00c853; }
+
+        /* Action Buttons & Flash Effect */
+        .btn-group-main { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+        .btn-pbt {
+            height: 54px; border: none; border-radius: 10px; font-size: 24px; font-weight: 900;
+            color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.05s, filter 0.1s, box-shadow 0.1s;
+        }
+        .btn-pbt:active { transform: scale(0.96); }
+        .btn-p { background: linear-gradient(180deg, #0066ff, #0044cc); }
+        .btn-t { background: linear-gradient(180deg, #00e676, #00a844); }
+        .btn-b { background: linear-gradient(180deg, #ff1744, #d50000); }
+
+        .btn-flash {
+            filter: brightness(2.2) contrast(1.2) !important;
+            box-shadow: 0 0 25px #ffffff, 0 0 10px #ffffff !important;
+        }
+
+        .btn-group-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+        .btn-sub {
+            background: #1a1a1a; color: #888; border: 1px solid #2a2a2a; border-radius: 6px;
+            padding: 8px 0; font-size: 11px; font-weight: bold; cursor: pointer;
+        }
+        .btn-sub:active { background: #252525; color: #fff; }
+
+        /* Modals */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 999; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #1a1a1a; padding: 15px; border-radius: 12px; width: 88%; max-width: 320px;
+            text-align: center; border: 1px solid #333; max-height: 80vh; display: flex; flex-direction: column;
+        }
+        .setting-label { text-align: left; font-size: 11px; color: #aaa; margin-top: 10px; font-weight: bold; }
+        select {
+            background: #2a2a2a; color: #fff; border: 1px solid #444; padding: 8px;
+            border-radius: 6px; width: 100%; margin: 4px 0 12px 0; font-size: 13px;
+        }
+        .history-list {
+            overflow-y: auto; max-height: 250px; text-align: left; font-size: 11px; margin: 10px 0;
+            border-top: 1px solid #333; padding-top: 5px;
+        }
+        .history-item {
+            padding: 5px 0; border-bottom: 1px solid #222; display: flex; justify-content: space-between;
+        }
+        .win-text { color: #00e676; font-weight: bold; }
+        .loss-text { color: #ff1744; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="top-bar">
+        <span style="font-size: 13px; font-weight: bold; color: #00e5ff;">🎯 PATTERN TRACKER (2^2)</span>
+        <div class="top-tools">
+            <button class="theme-btn" onclick="openSettings()">⚙️ <span id="step-label">3 ไม้ (❌❌❌)</span></button>
+            <button class="theme-btn" onclick="toggleSound()">🔊 เสียง</button>
+        </div>
+    </div>
+
+    <div class="display-section">
+        <div class="main-box" id="box-target">
+            <span id="target-text" class="target-text text-wait">-</span>
+        </div>
+    </div>
+
+    <div class="counter-bar">
+        <span>P:<b id="c-p" class="count-p">0</b> T:<b id="c-t" class="count-t">0</b> B:<b id="c-b" class="count-b">0</b></span>
+        <div class="win-loss-text">
+            ชนะ: <b id="stat-win" style="color:#00e676">0</b> | แพ้: <b id="stat-loss" style="color:#ff1744">0</b>
+            <button class="btn-history-link" onclick="openHistoryModal()">ดูประวัติ</button>
+        </div>
+    </div>
+
+    <div class="bead-plate-container">
+        <div class="bead-grid" id="bead-grid"></div>
+    </div>
+
+    <div class="btn-group-main">
+        <button class="btn-pbt btn-p" onclick="addResult('P', this)">P</button>
+        <button class="btn-pbt btn-t" onclick="addResult('T', this)">T</button>
+        <button class="btn-pbt btn-b" onclick="addResult('B', this)">B</button>
+    </div>
+
+    <div class="btn-group-sub">
+        <button class="btn-sub" onclick="undo()">ย้อนกลับ</button>
+        <button class="btn-sub" style="color:#ff5252;" onclick="resetAll()">ล้างข้อมูล</button>
+    </div>
+</div>
+
+<!-- Modal ตั้งค่าระบบ -->
+<div id="modal-settings" class="modal">
+    <div class="modal-content">
+        <h4 style="margin:0 0 10px 0; color:#00e5ff;">⚙️ ตั้งค่าระบบประมวลผล</h4>
+        
+        <div class="setting-label">โหมดการคำนวณแพตเทิร์น:</div>
+        <select id="strategy-select" onchange="updateSettings()">
+            <option value="LOSS_3">สแกนหา ผิด 3 ตาติด (❌❌❌)</option>
+            <option value="WIN_3">สแกนหา ถูก 3 ตาติด (✅✅✅)</option>
+        </select>
+
+        <div class="setting-label">จำนวนไม้ทบสูงสุด:</div>
+        <select id="max-step-select" onchange="updateSettings()">
+            <option value="1">1 ไม้</option>
+            <option value="2">2 ไม้</option>
+            <option value="3" selected>3 ไม้</option>
+            <option value="4">4 ไม้</option>
+            <option value="5">5 ไม้</option>
+            <option value="6">6 ไม้</option>
+        </select>
+
+        <button class="btn-sub" style="width:100%; color:#fff; background:#0055ff; margin-top:8px;" onclick="closeSettings()">ตกลง / บันทึก</button>
+    </div>
+</div>
+
+<div id="modal-history" class="modal">
+    <div class="modal-content">
+        <h4 style="margin:0 0 10px 0; color:#00e5ff;">📜 ประวัติการยิงสไนเปอร์</h4>
+        <div class="history-list" id="history-logs-container">
+            <div style="text-align:center; color:#666;">ยังไม่มีประวัติการยิง</div>
+        </div>
+        <button class="btn-sub" style="width:100%; color:#fff; background:#333;" onclick="closeHistoryModal()">ปิด</button>
+    </div>
+</div>
+
+<script>
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        alert(soundEnabled ? "เปิดเสียงแจ้งเตือนแล้ว" : "ปิดเสียงแจ้งเตือนแล้ว");
+    }
+
+    function playAlertSound() {
+        if (!soundEnabled) return;
+        initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+    }
+
+    // 1. สร้าง 4 แพตเทิร์น (2^2 = 4 รูปแบบ -> 2 คู่)
+    function generatePatterns() {
+        const patterns = [];
+        for (let i = 0; i < 2; i++) {
+            let mStr = "", rStr = "";
+            for (let bit = 1; bit >= 0; bit--) {
+                const isSet = (i >> bit) & 1;
+                mStr += isSet ? "T" : "M";
+                rStr += isSet ? "M" : "T";
+            }
+            patterns.push({ id: `P_${i}_M`, code: mStr });
+            patterns.push({ id: `P_${i}_R`, code: rStr });
+        }
+        return patterns;
+    }
+
+    const allPatterns = generatePatterns();
+    const STEP_BACK = 2; // 2^2 = 2 บิต
+    
+    let history = JSON.parse(localStorage.getItem('komkom_history_2pow2')) || [];
+    let maxMartingale = parseInt(localStorage.getItem('komkom_max_step_2pow2')) || 3;
+    let currentStrategy = localStorage.getItem('komkom_strategy_2pow2') || 'LOSS_3';
+    let globalLogs = [];
+
+    document.getElementById('max-step-select').value = maxMartingale;
+    document.getElementById('strategy-select').value = currentStrategy;
+    updateTopLabel();
+
+    function getPatternPred(patternCode, historyFiltered, index) {
+        const stepIdx = (index - STEP_BACK) % 2;
+        const logic = patternCode[stepIdx];
+        const baseVal = historyFiltered[index - STEP_BACK];
+        return (logic === "M") ? baseVal : (baseVal === 'P' ? 'B' : 'P');
+    }
+
+    // ตรวจสอบสถานะ ถูก(Win) หรือ ผิด(Loss)
+    function isPredMatch(patternCode, historyFiltered, checkIdx, targetStatus) {
+        if (checkIdx < STEP_BACK) return false;
+        const pred = getPatternPred(patternCode, historyFiltered, checkIdx);
+        const isWin = (historyFiltered[checkIdx] === pred);
+        return targetStatus === 'WIN' ? isWin : !isWin;
+    }
+
+    // ค้นหา Pattern ที่มี ❌❌❌ หรือ ✅✅✅ ชิดตานี้ที่สุด
+    function findBest3Pattern(historyFiltered, currentIndex, strategy) {
+        let bestPattern = null;
+        let latestIndex = -1;
+        const targetStatus = strategy === 'WIN_3' ? 'WIN' : 'LOSS';
+
+        for (let checkIdx = currentIndex - 1; checkIdx >= STEP_BACK + 2; checkIdx--) {
+            for (let p of allPatterns) {
+                if (isPredMatch(p.code, historyFiltered, checkIdx, targetStatus) &&
+                    isPredMatch(p.code, historyFiltered, checkIdx - 1, targetStatus) &&
+                    isPredMatch(p.code, historyFiltered, checkIdx - 2, targetStatus)) {
+                    
+                    if (checkIdx > latestIndex) {
+                        latestIndex = checkIdx;
+                        bestPattern = p;
+                    }
+                }
+            }
+            if (bestPattern) break; // เจอ Pattern ที่ใกล้ที่สุดชิดตานี้
+        }
+
+        return bestPattern;
+    }
+
+    // 2. ประมวลผลแทงและทบไม้ตามโหมด
+    function processSniper() {
+        const filtered = history.filter(x => x === 'P' || x === 'B');
+        
+        if (filtered.length < STEP_BACK) {
+            return { signal: null, win: 0, loss: 0, logs: [] };
+        }
+
+        let activePattern = null;
+        let currentStep = 1;
+        let win = 0, loss = 0;
+        let logs = [];
+        let roundCount = 1;
+
+        let i = STEP_BACK + 3;
+        while (i <= filtered.length) {
+            if (!activePattern) {
+                activePattern = findBest3Pattern(filtered, i, currentStrategy);
+                currentStep = 1;
+            }
+
+            if (activePattern && i < filtered.length) {
+                const pred = getPatternPred(activePattern.code, filtered, i);
+
+                if (filtered[i] === pred) {
+                    // ชนะ (✅) -> ไหลกินต่อใน Pattern เดิม
+                    logs.push({ round: roundCount++, status: 'WIN', step: currentStep, patId: activePattern.id });
+                    win++;
+                    currentStep = 1; 
+                } else {
+                    // แพ้ (❌) -> ทบไม้ และสแกนหา Pattern ใหม่ที่มี ✅✅✅ หรือ ❌❌❌ ล่าสุด
+                    if (currentStep < maxMartingale) {
+                        currentStep++;
+                        const newPat = findBest3Pattern(filtered, i + 1, currentStrategy);
+                        if (newPat) activePattern = newPat;
+                    } else {
+                        logs.push({ round: roundCount++, status: 'LOSS', step: maxMartingale, patId: activePattern.id });
+                        loss++;
+                        activePattern = null; // ปลดออกหาใหม่รอบหน้า
+                        currentStep = 1;
+                    }
+                }
+            } else if (activePattern && i === filtered.length) {
+                const nextPred = getPatternPred(activePattern.code, filtered, i);
+                return {
+                    signal: { pred: nextPred, step: currentStep, patId: activePattern.id },
+                    win, loss, logs
+                };
+            }
+            i++;
+        }
+
+        return { signal: null, win, loss, logs };
+    }
+
+    function addResult(val, btnEl) {
+        if (btnEl) {
+            btnEl.classList.add('btn-flash');
+            setTimeout(() => btnEl.classList.remove('btn-flash'), 120);
+        }
+        initAudio();
+        history.push(val);
+        saveAndRender();
+    }
+
+    function undo() { history.pop(); saveAndRender(); }
+
+    function resetAll() {
+        if (confirm("ล้างข้อมูลประวัติทั้งหมด?")) {
+            history = [];
+            saveAndRender();
+        }
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('komkom_history_2pow2', JSON.stringify(history));
+        
+        const grid = document.getElementById('bead-grid');
+        grid.innerHTML = "";
+        
+        let countP = 0, countT = 0, countB = 0;
+
+        for (let i = 0; i < 90; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'bead-cell';
+            if (i < history.length) {
+                const item = history[i];
+                cell.classList.add(item.toLowerCase());
+                cell.innerText = item;
+            }
+            grid.appendChild(cell);
+        }
+
+        history.forEach(x => {
+            if (x === 'P') countP++;
+            if (x === 'T') countT++;
+            if (x === 'B') countB++;
+        });
+
+        document.getElementById('c-p').innerText = countP;
+        document.getElementById('c-t').innerText = countT;
+        document.getElementById('c-b').innerText = countB;
+
+        const result = processSniper();
+        globalLogs = result.logs;
+
+        document.getElementById('stat-win').innerText = result.win;
+        document.getElementById('stat-loss').innerText = result.loss;
+
+        const box = document.getElementById('box-target');
+        const targetText = document.getElementById('target-text');
+
+        box.className = 'main-box';
+        targetText.className = 'target-text';
+
+        if (result.signal) {
+            playAlertSound();
+            const pred = result.signal.pred;
+            targetText.innerText = `${result.signal.step}${pred}`;
+            
+            if (pred === 'P') {
+                box.classList.add('box-p');
+                targetText.classList.add('text-p');
+            } else {
+                box.classList.add('box-b');
+                targetText.classList.add('text-b');
+            }
+        } else {
+            targetText.innerText = "-";
+            targetText.classList.add('text-wait');
+        }
+    }
+
+    function openSettings() { document.getElementById('modal-settings').style.display = 'flex'; }
+    function closeSettings() { document.getElementById('modal-settings').style.display = 'none'; }
+    
+    function updateSettings() {
+        maxMartingale = parseInt(document.getElementById('max-step-select').value);
+        currentStrategy = document.getElementById('strategy-select').value;
+        
+        localStorage.setItem('komkom_max_step_2pow2', maxMartingale);
+        localStorage.setItem('komkom_strategy_2pow2', currentStrategy);
+        
+        updateTopLabel();
+        saveAndRender();
+    }
+
+    function updateTopLabel() {
+        const modeTag = currentStrategy === 'WIN_3' ? '✅✅✅' : '❌❌❌';
+        document.getElementById('step-label').innerText = `${maxMartingale} ไม้ (${modeTag})`;
+    }
+
+    function openHistoryModal() {
+        const container = document.getElementById('history-logs-container');
+        if (globalLogs.length === 0) {
+            container.innerHTML = `<div style="text-align:center; color:#666;">ยังไม่มีประวัติการยิงสไนเปอร์</div>`;
+        } else {
+            let html = "";
+            globalLogs.slice().reverse().forEach(item => {
+                if (item.status === 'WIN') {
+                    html += `<div class="history-item"><span>รอบที่ ${item.round}</span> <span class="win-text">ชนะ ไม้ ${item.step} ✅</span></div>`;
+                } else {
+                    html += `<div class="history-item"><span>รอบที่ ${item.round}</span> <span class="loss-text">แพ้ หลุดไม้ ${item.step} ❌</span></div>`;
+                }
+            });
+            container.innerHTML = html;
+        }
+        document.getElementById('modal-history').style.display = 'flex';
+    }
+    function closeHistoryModal() { document.getElementById('modal-history').style.display = 'none'; }
+
+    saveAndRender();
+</script>
+</body>
+</html>
